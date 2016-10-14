@@ -77,6 +77,8 @@ npm install loopback-connector-es --save --save-exact
 - **ssl:** useful for setting up a secure channel
 - **protocol:** can be `http` or `https` (`http` is the default if none specified) ... *must* be `https` if you're using `ssl`
 - **auth**: useful if you have access control setup via services like `es-jetty` or `found` or `shield`
+- **searchIndex**: specifies the index used for READ operations. NOTE: This will overwrite `index` property.
+- **writeIndex**: specifies the index used for write operations. This requires `moment` and uses `moment().format('<writeIndex>')` under the hood.
 
 ### Sample:
 1. Edit **datasources.json** and set:
