@@ -4,20 +4,15 @@
     "index": "shakespeare",
     "hosts": [
         {
-            "protocol": "https",
-            "host": "hosted.foundcluster.com",
-            "port": 9243,
-            "auth": "username:password"
+            "protocol": "http",
+            "host": "localhost",
+            "port": 9200
         }
     ],
-    "apiVersion": "1.1",
+    "apiVersion": "5.0",
     "log": "trace",
     "defaultSize": 50,
     "requestTimeout": 30000,
-    "ssl": {
-        "ca": "./../cacert.pem",
-        "rejectUnauthorized": true
-    },
     "mappings": [
         {
             "name": "User",

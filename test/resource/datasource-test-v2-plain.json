@@ -6,10 +6,10 @@
         {
             "protocol": "http",
             "host": "localhost",
-            "port": 9202
+            "port": 9200
         }
     ],
-    "apiVersion": "2.3",
+    "apiVersion": "5.0",
     "log": "trace",
     "defaultSize": 50,
     "requestTimeout": 30000,
