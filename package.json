@@ -46,7 +46,8 @@
     "elastic-deletebyquery": "^1.0.8",
     "elasticsearch": "^12.1.0",
     "lodash": "^3.5.0",
-    "loopback-connector": "^1.1.1"
+    "loopback-connector": "^1.1.1",
+    "agentkeepalive": "^3.0.0"
   },
   "directories": {
     "example": "examples",
