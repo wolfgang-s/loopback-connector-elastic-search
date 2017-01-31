@@ -1,3 +1,12 @@
+### v1.3.2 - Jan 31, 2017
+- Fixed Issue #64  - Date strings were not returned as Javascript Data objects
+  - this issue was fixed in PR #68
+- Fixed Issue #37 - MakeId refactoring applied for save method
+  - Save method still had an old implementation of makeId method which was updated with
+    getDocumentId method. This issue was fixed in PR #69
+- Fixed Issue - Objects inside an array were returned as strings
+  - This issue was fixed in PR #70
+
 ### v1.3.1 - Dec 02, 2016
 - Fixed Regression - analyzers for index weren't being created anymore
   - originally this was added in #25 and got lost somewhere along the way
