@@ -1,6 +1,6 @@
 require('./init.js');
 var async = require('async');
-var db, User, Customer, AccessToken, Post, PostWithId;
+var db, User, Customer, AccessToken, Post, PostWithId, Category, SubCategory;
 
 /*eslint no-console: "off"*/
 /*global getSchema should*/
@@ -74,6 +74,23 @@ describe('basic-querying', function () {
 			id: {type: String, id: true},
 			title: {type: String, length: 255},
 			content: {type: String}
+		});
+
+		Category = db.define('Category', {
+			category_name: {type: String, index: true, sort: true},
+			desc: {type: String, length: 100}
+		});
+
+		SubCategory = db.define('SubCategory', {
+			subcategory_name: {type: String}
+		});
+
+		Category.embedsMany(SubCategory, {
+			options: {
+				"validate": true,
+				"forceId": false,
+				"persistent": true
+			}
 		});
 
 
@@ -1079,6 +1096,111 @@ describe('basic-querying', function () {
 						done();
 					});
 				}, 2000);
+			});
+		});
+
+		describe('embedsMany relations', function () {
+
+			before(function (done) {
+				this.timeout = 4000;
+				Category.destroyAll(function () {
+					SubCategory.destroyAll(function () {
+						db.automigrate(['Category'], done);
+					});
+				});
+			});
+
+			it('should create embeded models and return embeded data using findById', function (done) {
+				this.timeout = 6000;
+				var category = {category_name: 'Apparels', desc: 'This is a category for apparels'};
+				Category.create(category, function (err, ct) {
+					should.not.exist(err);
+					should.exist(ct.id);
+					should.exist(ct.category_name);
+					should.exist(ct.desc);
+					setTimeout(function () {
+						ct.subCategoryList.create({subcategory_name: 'Jeans'}, function (err, sct) {
+							should.not.exist(err);
+							should.exist(sct.id);
+							expect(sct.subcategory_name).to.equal('Jeans');
+							setTimeout(function () {
+								Category.findById(ct.id, function (err, found) {
+									should.not.exist(err);
+									should.exist(found.id);
+									expect(found.category_name).to.equal('Apparels');
+									expect(found.subCategories).to.be.instanceOf(Array);
+									expect(found).to.have.deep.property('subCategories[0].subcategory_name','Jeans');
+									done();
+								});
+							},2000);
+						});
+					},2000);
+				});
+			});
+
+			it('should create multiple embeded models and return proper data using findById', function (done) {
+				this.timeout = 6000;
+				var category = {category_name: 'Electronics', desc: 'This is a category for electronics'};
+				Category.create(category, function (err, ct) {
+					should.not.exist(err);
+					should.exist(ct.id);
+					should.exist(ct.category_name);
+					should.exist(ct.desc);
+					setTimeout(function () {
+						ct.subCategoryList.create({subcategory_name: 'Mobiles'}, function (err, sct) {
+							should.not.exist(err);
+							should.exist(sct.id);
+							expect(sct.subcategory_name).to.equal('Mobiles');
+							setTimeout(function () {
+								ct.subCategoryList.create({subcategory_name: 'Laptops'}, function (err, data) {
+									should.not.exist(err);
+									should.exist(data.id);
+									expect(data.subcategory_name).to.equal('Laptops');
+									setTimeout(function () {
+										Category.findById(ct.id, function (err, found) {
+											should.not.exist(err);
+											should.exist(found.id);
+											expect(found.category_name).to.equal('Electronics');
+											expect(found.subCategories).to.be.instanceOf(Array);
+											expect(found).to.have.deep.property('subCategories[0].subcategory_name','Mobiles');
+											expect(found).to.have.deep.property('subCategories[1].subcategory_name','Laptops');
+											done();
+										});
+									},2000);
+								});
+							},2000);
+						});
+					},2000);
+				});
+			});
+
+			it('should create embeded models and return embeded data using find', function (done) {
+				this.timeout = 6000;
+				var category = {category_name: 'Footwear', desc: 'This is a category for footwear'};
+				Category.create(category, function (err, ct) {
+					should.not.exist(err);
+					should.exist(ct.id);
+					should.exist(ct.category_name);
+					should.exist(ct.desc);
+					setTimeout(function () {
+						ct.subCategoryList.create({subcategory_name: 'Sandals'}, function (err, sct) {
+							should.not.exist(err);
+							should.exist(sct.id);
+							expect(sct.subcategory_name).to.equal('Sandals');
+							setTimeout(function () {
+								Category.find({where: {category_name: 'Footwear'}}, function (err, found) {
+									found = found[0];
+									should.not.exist(err);
+									should.exist(found.id);
+									expect(found.category_name).to.equal('Footwear');
+									expect(found.subCategories).to.be.instanceOf(Array);
+									expect(found).to.have.deep.property('subCategories[0].subcategory_name','Sandals');
+									done();
+								});
+							},2000);
+						});
+					},2000);
+				});
 			});
 		});
 	});
