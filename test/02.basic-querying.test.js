@@ -93,6 +93,8 @@ describe('basic-querying', function () {
 			}
 		});
 
+		User.hasMany(Post);
+		Post.belongsTo(User);
 
 		//TODO: add tests for a model where type doesn't match its name
 		// Added few test for model Post with type name as PostCollection in `save` block test cases.
@@ -1195,6 +1197,103 @@ describe('basic-querying', function () {
 									expect(found.category_name).to.equal('Footwear');
 									expect(found.subCategories).to.be.instanceOf(Array);
 									expect(found).to.have.deep.property('subCategories[0].subcategory_name','Sandals');
+									done();
+								});
+							},2000);
+						});
+					},2000);
+				});
+			});
+		});
+
+		describe('hasMany relations', function () {
+
+			beforeEach(function (done) {
+				this.timeout = 4000;
+				User.destroyAll(function () {
+					Post.destroyAll(function () {
+						db.automigrate(['User'], done);
+					});
+				});
+			});
+
+			it('should create related model and check if include filter works', function (done) {
+				this.timeout = 6000;
+				var Kamal = {
+					seq: 0,
+					name: 'Kamal Khatwani',
+					email: 'kamal@shoppinpal.com',
+					role: 'lead',
+					birthday: new Date('1993-12-08'),
+					order: 2,
+					vip: true
+				};
+
+				User.create(Kamal, function (err, kamal) {
+					should.not.exist(err);
+					should.exist(kamal.id);
+					should.exist(kamal.seq);
+					var kamals_post_1 = {
+						title: 'Kamal New Post',
+						content: 'First post of kamal khatwani on elasticsearch',
+						comments: ['First Comment']
+					};
+					setTimeout(function () {
+						kamal.posts.create(kamals_post_1, function (err, firstPost) {
+							should.not.exist(err);
+							should.exist(firstPost.id);
+							expect(firstPost.userId).to.equal(0);
+							setTimeout(function () {
+								User.find({include: 'posts'}, function (err, userFound) {
+									userFound = userFound[0].toJSON();
+									should.not.exist(err);
+									should.exist(userFound.posts);
+									expect(userFound.posts).to.be.instanceOf(Array);
+									expect(userFound.posts.length).to.equal(1);
+									done();
+								});
+							},2000);
+						});
+					},2000);
+				});
+			});
+
+			it('should create related model and check include filter with specific fields', function (done) {
+				this.timeout = 6000;
+				var Kamal = {
+					seq: 0,
+					name: 'Kamal Khatwani',
+					email: 'kamal@shoppinpal.com',
+					role: 'lead',
+					birthday: new Date('1993-12-08'),
+					order: 2,
+					vip: true
+				};
+
+				User.create(Kamal, function (err, kamal) {
+					should.not.exist(err);
+					should.exist(kamal.id);
+					should.exist(kamal.seq);
+					var kamals_post_1 = {
+						title: 'Kamal New Post',
+						content: 'First post of kamal khatwani on elasticsearch',
+						comments: ['First Comment']
+					};
+					setTimeout(function () {
+						kamal.posts.create(kamals_post_1, function (err, firstPost) {
+							should.not.exist(err);
+							should.exist(firstPost.id);
+							expect(firstPost.userId).to.equal(0);
+							setTimeout(function () {
+								User.find({include: {relation: 'posts', scope: {fields : ['title']}}}, function (err, userFound) {
+									userFound = userFound[0].toJSON();
+									should.not.exist(err);
+									should.exist(userFound.posts);
+									expect(userFound.posts).to.be.instanceOf(Array);
+									expect(userFound.posts.length).to.equal(1);
+									expect(userFound.posts[0].title).to.equal('Kamal New Post');
+									expect(userFound.posts[0].content).to.equal(undefined);
+									expect(userFound.posts[0].comments).to.equal(undefined);
 									done();
 								});
 							},2000);
