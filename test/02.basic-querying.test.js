@@ -1017,7 +1017,7 @@ describe('basic-querying', function () {
 					should.exist(instance);
 					should.exist(instance.id);
 					should.exist(instance.seq);
-					setTimeout(function () {
+					//setTimeout(function () {
 						User.find({where: {seq: instance.seq}}, function (err, data) {
 							should.not.exist(err);
 							data[0].seq.should.equal(beatlesFan.seq);
@@ -1026,7 +1026,7 @@ describe('basic-querying', function () {
 							data[0].vip.should.equal(beatlesFan.vip);
 							done();
 						});
-					}, 2000);
+					//}, 2000);
 				});
 			}, 2000);
 		});

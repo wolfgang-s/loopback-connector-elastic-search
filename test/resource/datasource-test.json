@@ -20,7 +20,7 @@
                 "id": {"type": "string", "index" : "not_analyzed"},
                 "seq": {"type": "integer"},
                 "name" : {
-                    "type" : "multi_field",
+                    "type" : "string",
                     "fields" : {
                         "name" : {"type" : "string", "index" : "not_analyzed"},
                         "native" : {"type" : "string", "index" : "analyzed"}
@@ -38,7 +38,7 @@
             "properties": {
                 "objectId": {"type": "string", "index" : "not_analyzed"},
                 "name" : {
-                    "type" : "multi_field",
+                    "type" : "string",
                     "fields" : {
                         "name" : {"type" : "string", "index" : "not_analyzed"},
                         "native" : {"type" : "string", "index" : "analyzed"}
