@@ -410,12 +410,16 @@ describe('basic-querying', function () {
 		});
 
 		it('should query filtered collection', function (done) {
-			User.find({where: {role: 'lead'}}, function (err, users) {
-				should.exist(users);
-				should.not.exist(err);
-				users.should.have.lengthOf(2);
-				done();
-			});
+			setTimeout(function () {
+				User.find({where: {role: 'lead'}}, function (err, users) {
+					console.log('users',users);
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(2);
+					done();
+				});
+			},2000);
+
 		});
 
 		it('should query collection sorted by numeric field', function (done) {
@@ -463,18 +467,99 @@ describe('basic-querying', function () {
 		});
 
 		it('should support "and" operator that is satisfied', function (done) {
-			User.find({
-				where: {
-					and: [
-						{name: 'John Lennon'},
-						{role: 'lead'}
-					]
-				}
-			}, function (err, users) {
-				should.not.exist(err);
-				users.should.have.property('length', 1);
-				done();
-			});
+			setTimeout(function () {
+				User.find({
+					where: {
+						and: [
+							{name: 'John Lennon'},
+							{role: 'lead'}
+						]
+					}
+				}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.property('length', 1);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "and" with "inq" operator that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({
+					where: {
+						and: [
+							{seq: {inq:[] }},
+							{vip: true}
+						]
+					}
+				}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.property('length', 0);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "or" with nested "and" using "inq" operator that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({
+					where: {
+						or: [
+							{ and: [{seq: {inq:[3,4,5] }}, { vip: true }] },
+							{ role: 'lead' }
+						]
+					}
+				}, function (err, users) {
+					should.not.exist(err);
+					should.exist(users);
+					users.should.have.property('length', 3);
+					done();
+				});
+			},2000);
+		});
+
+		/**
+		 * Testing if es can support nested queries which the loopback ORM can.
+		 * where: {or: [{ and: [{seq: {inq:[3,4,5] }}, { vip: true }] },{ role: 'lead' }]}
+		 */
+		it('should support "or" with nested "and" using "inq" operator that is satisfied with native query', function (done) {
+			setTimeout(function () {
+				User.find({
+					native: {
+						'query': {
+							'bool': {
+								'should': [
+									{
+										'bool': {
+											'must': [
+												{
+													'terms': {
+														'_id': [
+															3,
+															4,
+															5
+														]
+													}
+												},
+												{
+													'match': {
+														'vip': true
+													}
+												}
+											]
+										}
+									}
+								]
+							}
+						}
+					}
+				}, function (err, users) {
+					should.not.exist(err);
+					should.exist(users);
+					users.should.have.property('length', 1);
+					done();
+				});
+			},2000);
 		});
 
 		it('should support "and" operator that is not satisfied', function (done) {
@@ -762,6 +847,135 @@ describe('basic-querying', function () {
 			});
 		});
 
+		it('should support "inq" filter that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {seq: {inq: [0,1,2] }}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(3);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "inq" filter that is not satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {seq: {inq: [] }}}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.lengthOf(0);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "nin" filter that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {seq: {nin: [0,1,2] }}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(3);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "nin" filter that is not satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {seq: {nin: [] }}}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.lengthOf(6);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "and" with "nin" operator that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({
+					where: {
+						and: [
+							{seq: {nin:[0,1,2] }},
+							{vip: true}
+						]
+					}
+				}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.property('length', 1);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "between" filter that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {order: {between: [3,6] }}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(4);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "between" filter that is not satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {order: {between: [3,1] }}}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.lengthOf(6);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "and" with "between" operator that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({
+					where: {
+						and: [
+							{order: {between:[2,6] }},
+							{vip: true}
+						]
+					}
+				}, function (err, users) {
+					should.not.exist(err);
+					users.should.have.property('length', 2);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "neq" filter that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {name: {neq: 'John Lennon' }}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(5);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "neq" filter that is satisfied with undefined property', function (done) {
+			setTimeout(function () {
+				User.find({where: {role: {neq: 'lead' }}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(4);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support "neq" filter that is not satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {role: {neq: ''}}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(6);
+					done();
+				});
+			},2000);
+		});
 	});
 
 	// TODO: there is no way for us to test the connector code explicitly
