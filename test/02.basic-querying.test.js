@@ -976,6 +976,52 @@ describe('basic-querying', function () {
 				});
 			},2000);
 		});
+
+		it('should support multiple comma separated property filter without "and" that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find({where: {role: 'lead', vip: true}}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(2);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support multiple comma separated "inq" without "and" filter that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find(
+					{
+						where: {
+							role: {inq: ['lead']},
+							seq: {inq: [0,2,3,4,5]}
+						}
+					}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(1);
+					done();
+				});
+			},2000);
+		});
+
+		it('should support two "inq" and one "between" without "and" filter that is satisfied', function (done) {
+			setTimeout(function () {
+				User.find(
+					{
+						where: {
+							role: {inq: ['lead']},
+							order: {between: [1,6]},
+							seq: {inq:  [2,3,4,5]}
+						}
+					}, function (err, users) {
+					should.exist(users);
+					should.not.exist(err);
+					users.should.have.lengthOf(0);
+					done();
+				});
+			},2000);
+		});
 	});
 
 	// TODO: there is no way for us to test the connector code explicitly
