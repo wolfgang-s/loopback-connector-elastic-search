@@ -1,3 +1,14 @@
+### v1.3.2 - Feb 23, 2017
+- Fixed Issue #79  - Multiple where clause filter support without `and` filter
+  - this issue was fixed in PR #78
+- Fixed Issue #73  - Nested and, or filter support added
+  - this issue was fixed in PR #75
+- Fixed Issue #73  - `inq`,`nin`,`between`,`neq` filter support added
+  - this issue was fixed in PR #75
+- Fixed Issue #28 - Include filter added
+  - Minimum workflow to make include filter work until we optimize it for better performance.
+    This issue was fixed in PR #71
+    
 ### v1.3.2 - Jan 31, 2017
 - Fixed Issue #64  - Date strings were not returned as Javascript Data objects
   - this issue was fixed in PR #68
