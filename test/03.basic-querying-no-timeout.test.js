@@ -1,5 +1,4 @@
 require('./init.js');
-var async = require('async');
 var db, User, Customer, AccessToken, Post, PostWithId, Category, SubCategory;
 
 /*eslint no-console: "off"*/
@@ -803,487 +802,516 @@ describe('basic-querying-no-timeout', function () {
         }, 2000);
     });
 
+	describe('count', function () {
+
+		before(seed);
+
+		it('should query total count', function (done) {
+			// NOTE: ES indexing then searching isn't real-time ... its near-real-time
+			User.count(function (err, n) {
+				should.not.exist(err);
+				should.exist(n);
+				n.should.equal(6);
+				done();
+			});
+		});
+
+		it('should query filtered count', function (done) {
+			User.count({role: 'lead'}, function (err, n) {
+				should.not.exist(err);
+				should.exist(n);
+				n.should.equal(2);
+				done();
+			});
+		});
+	});
+
+	describe('findOne', function () {
+
+		before(seed);
+
+		it('should find first record (default sort by id)', function (done) {
+			User.all({order: 'id'}, function (err, users) {
+				User.findOne(function (e, u) {
+					should.not.exist(e);
+					should.exist(u);
+					// NOTE: if `id: true` is not set explicitly when defining a model, there will be trouble!
+					u.id.toString().should.equal(users[0].id.toString());
+					done();
+				});
+			});
+		});
+
+		it('should find first record', function (done) {
+			User.findOne({order: 'order'}, function (e, u) {
+				should.not.exist(e);
+				should.exist(u);
+				u.order.should.equal(1);
+				u.name.should.equal('Paul McCartney');
+				done();
+			});
+		});
+
+		it('should find last record', function (done) {
+			User.findOne({order: 'order DESC'}, function (e, u) {
+				should.not.exist(e);
+				should.exist(u);
+				u.order.should.equal(6);
+				u.name.should.equal('Ringo Starr');
+				done();
+			});
+		});
+
+		it('should find last record in filtered set', function (done) {
+			User.findOne({
+				where: {role: 'lead'},
+				order: 'order DESC'
+			}, function (e, u) {
+				should.not.exist(e);
+				should.exist(u);
+				u.order.should.equal(2);
+				u.name.should.equal('John Lennon');
+				done();
+			});
+		});
+
+		it('should work even when find by id', function (done) {
+			User.findOne(function (e, u) {
+				//console.log(JSON.stringify(u));
+				// ESConnector.prototype.all +0ms model User filter {"where":{},"limit":1,"offset":0,"skip":0}
+                /*
+                 * Ideally, instead of always generating:
+                 *   filter {"where":{"id":0},"limit":1,"offset":0,"skip":0}
+                 * the id-literal should be replaced with the actual idName by loopback's core:
+                 *   filter {"where":{"seq":0},"limit":1,"offset":0,"skip":0}
+                 * in my opinion.
+                 */
+				User.findOne({where: {id: u.id}}, function (err, user) {
+					should.not.exist(err);
+					should.exist(user);
+					done();
+				});
+			});
+		});
+
+	});
+
+	describe('exists', function () {
+
+		before(seed);
+
+		it('should check whether record exist', function (done) {
+
+			// NOTE: ES indexing then searching isn't real-time ... its near-real-time
+			User.findOne(function (e, u) {
+				User.exists(u.id, function (err, exists) {
+					should.not.exist(err);
+					should.exist(exists);
+					exists.should.be.ok;
+					done();
+				});
+			});
+
+		});
+
+		it('should check whether record not exist', function (done) {
+			User.destroyAll(function () {
+				User.exists(42, function (err, exists) {
+					should.not.exist(err);
+					exists.should.not.be.ok;
+					done();
+				});
+			});
+		});
+
+	});
+
+	describe('destroyAll with where option', function () {
+
+		before(seed);
+
+		it('should only delete instances that satisfy the where condition', function (done) {
+			this.timeout(6000);
+			setTimeout(function () {
+				User.destroyAll({name: 'John Lennon'}, function () {
+					setTimeout(function () {
+						User.find({where: {name: 'John Lennon'}}, function (err, data) {
+							should.not.exist(err);
+							data.length.should.equal(0);
+							User.find({where: {name: 'Paul McCartney'}}, function (err, data) {
+								should.not.exist(err);
+								data.length.should.equal(1);
+								done();
+							});
+						});
+					}, 2000);
+				});
+			}, 2000);
+		});
+	});
+
+	describe('updateOrCreate', function () {
+
+		beforeEach(seed);
+
+		it('should update existing model', function (done) {
+
+			var beatle = {seq: 1, rating: 5};
+			User.updateOrCreate(beatle, function (err, instance) {
+				should.not.exist(err);
+				should.exist(instance);
+				//instance.should.eql(beatle);
+				User.find({where: {seq: 1}}, function (err, data) {
+					should.not.exist(err);
+					//data.length.should.equal(0);
+					data[0].rating.should.equal(beatle.rating);
+					done();
+				});
+			});
+		});
+
+		it('should create a new model', function (done) {
+			// NOTE: ES indexing then searching isn't real-time ... its near-real-time
+			var beatlesFan = {seq: 6, name: 'Pulkit Singhal', order: 7, vip: false};
+			User.updateOrCreate(beatlesFan, function (err, instance) {
+				should.not.exist(err);
+				should.exist(instance);
+				should.exist(instance.id);
+				should.exist(instance.seq);
+				User.find({where: {seq: instance.seq}}, function (err, data) {
+					should.not.exist(err);
+					data[0].seq.should.equal(beatlesFan.seq);
+					data[0].name.should.equal(beatlesFan.name);
+					data[0].order.should.equal(beatlesFan.order);
+					data[0].vip.should.equal(beatlesFan.vip);
+					done();
+				});
+			});
+		});
+	});
+
+	describe('updateAttributes', function () {
+
+		beforeEach(seed);
+
+		it('should update existing model', function (done) {
+			var updateAttrs = {newField: 1, order: 999};
+			User.findById(1, function (err, user) {
+				should.not.exist(err);
+				should.exist(user);
+				//user.id.should.equal(1);
+				//user.seq.should.equal(1);
+				should.exist(user.order);
+				should.not.exist(user.newField);
+				user.updateAttributes(updateAttrs, function (err, updatedUser) {
+					should.not.exist(err);
+					should.exist(updatedUser);
+					should.exist(updatedUser.order);
+					updatedUser.order.should.equal(updateAttrs.order);
+					// TODO: should a new field be added by updateAttributes?
+					// https://support.strongloop.com/requests/680
+					should.exist(updatedUser.newField);
+					updatedUser.newField.should.equal(updateAttrs.newField);
+					User.findById(1, function (err, userFetchedAgain) {
+						should.not.exist(err);
+						should.exist(userFetchedAgain);
+						should.exist(userFetchedAgain.order);
+						userFetchedAgain.order.should.equal(updateAttrs.order);
+						// TODO: should a new field be added by updateAttributes?
+						// https://support.strongloop.com/requests/680
+						should.exist(userFetchedAgain.newField);
+						userFetchedAgain.newField.should.equal(updateAttrs.newField);
+						done();
+					});
+				});
+			});
+		});
+
+	});
+
+	describe('all', function () {
+
+		before(destroyAccessTokens);
+
+		it('should convert date type fields from string to javascript date object when fetched', function (done) {
+			AccessToken.create({ttl: 1209600, created: '2017-01-10T12:12:38.600Z'}, function (err, token) {
+				should.not.exist(err);
+				should.exist(token.id);
+				AccessToken.findById(token.id, function (err, tokenInstance) {
+					should.not.exist(err);
+					should.exist(tokenInstance);
+					tokenInstance.should.be.an.instanceOf(AccessToken);
+					tokenInstance.created.should.be.an.instanceOf(Date);
+					done();
+				});
+			});
+		});
+
+		describe('embedsMany relations', function () {
+
+			before(function (done) {
+				Category.destroyAll(function () {
+					SubCategory.destroyAll(function () {
+						db.automigrate(['Category'], done);
+					});
+				});
+			});
+
+			it('should create embeded models and return embeded data using findById', function (done) {
+				var category = {category_name: 'Apparels', desc: 'This is a category for apparels'};
+				Category.create(category, function (err, ct) {
+					should.not.exist(err);
+					should.exist(ct.id);
+					should.exist(ct.category_name);
+					should.exist(ct.desc);
+					ct.subCategoryList.create({subcategory_name: 'Jeans'}, function (err, sct) {
+						should.not.exist(err);
+						should.exist(sct.id);
+						expect(sct.subcategory_name).to.equal('Jeans');
+						Category.findById(ct.id, function (err, found) {
+							should.not.exist(err);
+							should.exist(found.id);
+							expect(found.category_name).to.equal('Apparels');
+							expect(found.subCategories).to.be.instanceOf(Array);
+							expect(found).to.have.deep.property('subCategories[0].subcategory_name', 'Jeans');
+							done();
+						});
+					});
+				});
+			});
+
+			it('should create multiple embeded models and return proper data using findById', function (done) {
+				var category = {category_name: 'Electronics', desc: 'This is a category for electronics'};
+				Category.create(category, function (err, ct) {
+					should.not.exist(err);
+					should.exist(ct.id);
+					should.exist(ct.category_name);
+					should.exist(ct.desc);
+					ct.subCategoryList.create({subcategory_name: 'Mobiles'}, function (err, sct) {
+						should.not.exist(err);
+						should.exist(sct.id);
+						expect(sct.subcategory_name).to.equal('Mobiles');
+						ct.subCategoryList.create({subcategory_name: 'Laptops'}, function (err, data) {
+							should.not.exist(err);
+							should.exist(data.id);
+							expect(data.subcategory_name).to.equal('Laptops');
+							Category.findById(ct.id, function (err, found) {
+								should.not.exist(err);
+								should.exist(found.id);
+								expect(found.category_name).to.equal('Electronics');
+								expect(found.subCategories).to.be.instanceOf(Array);
+								expect(found).to.have.deep.property('subCategories[0].subcategory_name', 'Mobiles');
+								expect(found).to.have.deep.property('subCategories[1].subcategory_name', 'Laptops');
+								done();
+							});
+						});
+					});
+				});
+			});
+
+			it('should create embeded models and return embeded data using find', function (done) {
+				var category = {category_name: 'Footwear', desc: 'This is a category for footwear'};
+				Category.create(category, function (err, ct) {
+					should.not.exist(err);
+					should.exist(ct.id);
+					should.exist(ct.category_name);
+					should.exist(ct.desc);
+					ct.subCategoryList.create({subcategory_name: 'Sandals'}, function (err, sct) {
+						should.not.exist(err);
+						should.exist(sct.id);
+						expect(sct.subcategory_name).to.equal('Sandals');
+						Category.find({where: {category_name: 'Footwear'}}, function (err, found) {
+							found = found[0];
+							should.not.exist(err);
+							should.exist(found.id);
+							expect(found.category_name).to.equal('Footwear');
+							expect(found.subCategories).to.be.instanceOf(Array);
+							expect(found).to.have.deep.property('subCategories[0].subcategory_name', 'Sandals');
+							done();
+						});
+					});
+				});
+			});
+		});
+	});
+
+	describe('save', function () {
+
+		before(destroyPosts);
+
+		it('all return should honor filter.fields, with `_id` as defined id', function (done) {
+
+			var post = new PostWithId({id: 'AAAA', title: 'Posts', content: 'all return should honor filter.fields'});
+			post.save(function (err, post) {
+				PostWithId.all({fields: ['title'], where: {title: 'Posts'}}, function (err, posts) {
+					should.not.exist(err);
+					posts.should.have.lengthOf(1);
+					post = posts[0];
+					post.should.have.property('title', 'Posts');
+					post.should.have.property('content', undefined);
+					should.not.exist(post._id);
+
+					done();
+				});
+			});
+		});
+
+		it('save should not return _id', function (done) {
+
+			Post.create({title: 'Post1', content: 'Post content'}, function (err, post) {
+				post.content = 'AAA';
+				post.save(function (err, p) {
+					should.not.exist(err);
+					should.not.exist(p._id);
+					p.id.should.be.equal(post.id);
+					p.content.should.be.equal('AAA');
+
+					done();
+				});
+
+			});
+		});
+
+		it('save should update the instance with the same id', function (done) {
+
+			Post.create({title: 'a', content: 'AAA'}, function (err, post) {
+				post.title = 'b';
+				delete post.content;
+				post.save(function (err, p) {
+					should.not.exist(err);
+					p.id.should.be.equal(post.id);
+					p.content.should.be.equal(post.content);
+					should.not.exist(p._id);
+					Post.findById(post.id, function (err, p) {
+						p.id.should.be.eql(post.id);
+						should.not.exist(p._id);
+						p.content.should.be.equal(post.content);
+						p.title.should.be.equal('b');
+						done();
+					});
+				});
+			});
+		});
+
+		it('save should update the instance without removing existing properties', function (done) {
+
+			Post.create({
+				title: 'a',
+				content: 'update the instance without removing existing properties'
+			}, function (err, post) {
+				delete post.title;
+				post.save(function (err, p) {
+
+					should.not.exist(err);
+					p.id.should.be.equal(post.id);
+					p.content.should.be.equal(post.content);
+					should.not.exist(p._id);
+					Post.findById(post.id, function (err, p) {
+						p.id.should.be.eql(post.id);
+						should.not.exist(p._id);
+						p.content.should.be.equal(post.content);
+						p.title.should.be.equal('a');
+
+						done();
+					});
+
+				});
+			});
+
+			it('save should create a new instance if it does not exist', function (done) {
+
+				var post = new Post({id: '123', title: 'Create', content: 'create if does not exist'});
+				post.save(post, function (err, p) {
+					should.not.exist(err);
+					p.title.should.be.equal(post.title);
+					p.content.should.be.equal(post.content);
+					p.id.should.be.equal(post.id);
+					Post.findById(p.id, function (err, p) {
+						p.id.should.be.equal(post.id);
+						should.not.exist(p._id);
+						p.content.should.be.equal(post.content);
+						p.title.should.be.equal(post.title);
+						p.id.should.be.equal(post.id);
+
+						done();
+					});
+				});
+			});
+
+			it('all return should honor filter.fields', function (done) {
+
+				var post = new Post({title: 'Fields', content: 'all return should honor filter.fields'});
+				post.save(function (err, post) {
+					Post.all({fields: ['title'], where: {title: 'Fields'}}, function (err, posts) {
+						should.not.exist(err);
+						posts.should.have.lengthOf(1);
+						post = posts[0];
+						post.should.have.property('title', 'Fields');
+						post.should.have.property('content', undefined);
+						should.not.exist(post._id);
+						should.not.exist(post.id);
+
+						done();
+					});
+				});
+			});
+
+		});
+
+		xdescribe('test id fallback when `generated:false`', function () {
+
+			it('should auto generate an id', function (done) {
+				Customer.create({name: 'George Harrison', vip: false}, function (err, u) {
+					console.log('user after create', u);
+					should.not.exist(err);
+					should.exist(u.id);
+					should.exist(u.objectId);
+					Customer.findById(u.objectId, function (err, u) {
+						console.log('customer after first findById', u);
+						u.save(function (err, savedCustomer) {
+							console.log('user after save', savedCustomer);
+							Customer.findById(u.objectId, function (err, foundUser) {
+								console.log('user after findById', foundUser);
+								done();
+							});
+						});
+					});
+				});
+			});
+		});
+
+	});
+
+	describe('updateAll', function () {
+		before(seed);
+
+		it('should update the documet', function (done) {
+			var userToUpdate = { seq: 10, name: 'Aquid Shahwar', email: 'aquid@shoppinpal.com', role: 'lead',
+				birthday: new Date('1992-09-21'), order: 11, vip: true
+			};
+
+			User.create(userToUpdate, function (err, user) {
+				should.not.exist(err);
+				should.exist(user);
+				User.updateAll({seq: user.seq}, {order: 10}, function (err, update) {
+					should.not.exist(err);
+					should.exist(update);
+					User.findById(user.seq, function (err, updatedUser) {
+						should.not.exist(err);
+						should.exist(updatedUser);
+						updatedUser.name.should.be.equal('Aquid Shahwar');
+						updatedUser.order.should.be.equal(10);
+						done();
+					});
+				});
+			});
+		})
+
+	});
+
 });
 
-describe('count', function () {
 
-    before(seed);
-
-    it('should query total count', function (done) {
-        // NOTE: ES indexing then searching isn't real-time ... its near-real-time
-        User.count(function (err, n) {
-            should.not.exist(err);
-            should.exist(n);
-            n.should.equal(6);
-            done();
-        });
-    });
-
-    it('should query filtered count', function (done) {
-        User.count({role: 'lead'}, function (err, n) {
-            should.not.exist(err);
-            should.exist(n);
-            n.should.equal(2);
-            done();
-        });
-    });
-});
-
-describe('findOne', function () {
-
-    before(seed);
-
-    it('should find first record (default sort by id)', function (done) {
-        User.all({order: 'id'}, function (err, users) {
-            User.findOne(function (e, u) {
-                should.not.exist(e);
-                should.exist(u);
-                // NOTE: if `id: true` is not set explicitly when defining a model, there will be trouble!
-                u.id.toString().should.equal(users[0].id.toString());
-                done();
-            });
-        });
-    });
-
-    it('should find first record', function (done) {
-        User.findOne({order: 'order'}, function (e, u) {
-            should.not.exist(e);
-            should.exist(u);
-            u.order.should.equal(1);
-            u.name.should.equal('Paul McCartney');
-            done();
-        });
-    });
-
-    it('should find last record', function (done) {
-        User.findOne({order: 'order DESC'}, function (e, u) {
-            should.not.exist(e);
-            should.exist(u);
-            u.order.should.equal(6);
-            u.name.should.equal('Ringo Starr');
-            done();
-        });
-    });
-
-    it('should find last record in filtered set', function (done) {
-        User.findOne({
-            where: {role: 'lead'},
-            order: 'order DESC'
-        }, function (e, u) {
-            should.not.exist(e);
-            should.exist(u);
-            u.order.should.equal(2);
-            u.name.should.equal('John Lennon');
-            done();
-        });
-    });
-
-    it('should work even when find by id', function (done) {
-        User.findOne(function (e, u) {
-            //console.log(JSON.stringify(u));
-            // ESConnector.prototype.all +0ms model User filter {"where":{},"limit":1,"offset":0,"skip":0}
-            /*
-             * Ideally, instead of always generating:
-             *   filter {"where":{"id":0},"limit":1,"offset":0,"skip":0}
-             * the id-literal should be replaced with the actual idName by loopback's core:
-             *   filter {"where":{"seq":0},"limit":1,"offset":0,"skip":0}
-             * in my opinion.
-             */
-            User.findOne({where: {id: u.id}}, function (err, user) {
-                should.not.exist(err);
-                should.exist(user);
-                done();
-            });
-        });
-    });
-
-});
-
-describe('exists', function () {
-
-    before(seed);
-
-    it('should check whether record exist', function (done) {
-
-        // NOTE: ES indexing then searching isn't real-time ... its near-real-time
-        User.findOne(function (e, u) {
-            User.exists(u.id, function (err, exists) {
-                should.not.exist(err);
-                should.exist(exists);
-                exists.should.be.ok;
-                done();
-            });
-        });
-
-    });
-
-    it('should check whether record not exist', function (done) {
-        User.destroyAll(function () {
-            User.exists(42, function (err, exists) {
-                should.not.exist(err);
-                exists.should.not.be.ok;
-                done();
-            });
-        });
-    });
-
-});
-
-describe('destroyAll with where option', function () {
-
-    before(seed);
-
-    it('should only delete instances that satisfy the where condition', function (done) {
-        this.timeout(6000);
-        setTimeout(function () {
-            User.destroyAll({name: 'John Lennon'}, function () {
-                setTimeout(function () {
-                    User.find({where: {name: 'John Lennon'}}, function (err, data) {
-                        should.not.exist(err);
-                        data.length.should.equal(0);
-                        User.find({where: {name: 'Paul McCartney'}}, function (err, data) {
-                            should.not.exist(err);
-                            data.length.should.equal(1);
-                            done();
-                        });
-                    });
-                }, 2000);
-            });
-        }, 2000);
-    });
-});
-
-describe('updateOrCreate', function () {
-
-    beforeEach(seed);
-
-    it('should update existing model', function (done) {
-
-        var beatle = {seq: 1, rating: 5};
-        User.updateOrCreate(beatle, function (err, instance) {
-            should.not.exist(err);
-            should.exist(instance);
-            //instance.should.eql(beatle);
-            User.find({where: {seq: 1}}, function (err, data) {
-                should.not.exist(err);
-                //data.length.should.equal(0);
-                data[0].rating.should.equal(beatle.rating);
-                done();
-            });
-        });
-    });
-
-    it('should create a new model', function (done) {
-        // NOTE: ES indexing then searching isn't real-time ... its near-real-time
-        var beatlesFan = {seq: 6, name: 'Pulkit Singhal', order: 7, vip: false};
-        User.updateOrCreate(beatlesFan, function (err, instance) {
-            should.not.exist(err);
-            should.exist(instance);
-            should.exist(instance.id);
-            should.exist(instance.seq);
-            User.find({where: {seq: instance.seq}}, function (err, data) {
-                should.not.exist(err);
-                data[0].seq.should.equal(beatlesFan.seq);
-                data[0].name.should.equal(beatlesFan.name);
-                data[0].order.should.equal(beatlesFan.order);
-                data[0].vip.should.equal(beatlesFan.vip);
-                done();
-            });
-        });
-    });
-});
-
-describe('updateAttributes', function () {
-
-    beforeEach(seed);
-
-    it('should update existing model', function (done) {
-        var updateAttrs = {newField: 1, order: 999};
-        User.findById(1, function (err, user) {
-            should.not.exist(err);
-            should.exist(user);
-            //user.id.should.equal(1);
-            //user.seq.should.equal(1);
-            should.exist(user.order);
-            should.not.exist(user.newField);
-            user.updateAttributes(updateAttrs, function (err, updatedUser) {
-                should.not.exist(err);
-                should.exist(updatedUser);
-                should.exist(updatedUser.order);
-                updatedUser.order.should.equal(updateAttrs.order);
-                // TODO: should a new field be added by updateAttributes?
-                // https://support.strongloop.com/requests/680
-                should.exist(updatedUser.newField);
-                updatedUser.newField.should.equal(updateAttrs.newField);
-                User.findById(1, function (err, userFetchedAgain) {
-                    should.not.exist(err);
-                    should.exist(userFetchedAgain);
-                    should.exist(userFetchedAgain.order);
-                    userFetchedAgain.order.should.equal(updateAttrs.order);
-                    // TODO: should a new field be added by updateAttributes?
-                    // https://support.strongloop.com/requests/680
-                    should.exist(userFetchedAgain.newField);
-                    userFetchedAgain.newField.should.equal(updateAttrs.newField);
-                    done();
-                });
-            });
-        });
-    });
-
-});
-
-describe('all', function () {
-
-    before(destroyAccessTokens);
-
-    it('should convert date type fields from string to javascript date object when fetched', function (done) {
-        AccessToken.create({ttl: 1209600, created: '2017-01-10T12:12:38.600Z'}, function (err, token) {
-            should.not.exist(err);
-            should.exist(token.id);
-            AccessToken.findById(token.id, function (err, tokenInstance) {
-                should.not.exist(err);
-                should.exist(tokenInstance);
-                tokenInstance.should.be.an.instanceOf(AccessToken);
-                tokenInstance.created.should.be.an.instanceOf(Date);
-                done();
-            });
-        });
-    });
-
-    describe('embedsMany relations', function () {
-
-        before(function (done) {
-            Category.destroyAll(function () {
-                SubCategory.destroyAll(function () {
-                    db.automigrate(['Category'], done);
-                });
-            });
-        });
-
-        it('should create embeded models and return embeded data using findById', function (done) {
-            var category = {category_name: 'Apparels', desc: 'This is a category for apparels'};
-            Category.create(category, function (err, ct) {
-                should.not.exist(err);
-                should.exist(ct.id);
-                should.exist(ct.category_name);
-                should.exist(ct.desc);
-                ct.subCategoryList.create({subcategory_name: 'Jeans'}, function (err, sct) {
-                    should.not.exist(err);
-                    should.exist(sct.id);
-                    expect(sct.subcategory_name).to.equal('Jeans');
-                    Category.findById(ct.id, function (err, found) {
-                        should.not.exist(err);
-                        should.exist(found.id);
-                        expect(found.category_name).to.equal('Apparels');
-                        expect(found.subCategories).to.be.instanceOf(Array);
-                        expect(found).to.have.deep.property('subCategories[0].subcategory_name', 'Jeans');
-                        done();
-                    });
-                });
-            });
-        });
-
-        it('should create multiple embeded models and return proper data using findById', function (done) {
-            var category = {category_name: 'Electronics', desc: 'This is a category for electronics'};
-            Category.create(category, function (err, ct) {
-                should.not.exist(err);
-                should.exist(ct.id);
-                should.exist(ct.category_name);
-                should.exist(ct.desc);
-                ct.subCategoryList.create({subcategory_name: 'Mobiles'}, function (err, sct) {
-                    should.not.exist(err);
-                    should.exist(sct.id);
-                    expect(sct.subcategory_name).to.equal('Mobiles');
-                    ct.subCategoryList.create({subcategory_name: 'Laptops'}, function (err, data) {
-                        should.not.exist(err);
-                        should.exist(data.id);
-                        expect(data.subcategory_name).to.equal('Laptops');
-                        Category.findById(ct.id, function (err, found) {
-                            should.not.exist(err);
-                            should.exist(found.id);
-                            expect(found.category_name).to.equal('Electronics');
-                            expect(found.subCategories).to.be.instanceOf(Array);
-                            expect(found).to.have.deep.property('subCategories[0].subcategory_name', 'Mobiles');
-                            expect(found).to.have.deep.property('subCategories[1].subcategory_name', 'Laptops');
-                            done();
-                        });
-                    });
-                });
-            });
-        });
-
-        it('should create embeded models and return embeded data using find', function (done) {
-            var category = {category_name: 'Footwear', desc: 'This is a category for footwear'};
-            Category.create(category, function (err, ct) {
-                should.not.exist(err);
-                should.exist(ct.id);
-                should.exist(ct.category_name);
-                should.exist(ct.desc);
-                ct.subCategoryList.create({subcategory_name: 'Sandals'}, function (err, sct) {
-                    should.not.exist(err);
-                    should.exist(sct.id);
-                    expect(sct.subcategory_name).to.equal('Sandals');
-                    Category.find({where: {category_name: 'Footwear'}}, function (err, found) {
-                        found = found[0];
-                        should.not.exist(err);
-                        should.exist(found.id);
-                        expect(found.category_name).to.equal('Footwear');
-                        expect(found.subCategories).to.be.instanceOf(Array);
-                        expect(found).to.have.deep.property('subCategories[0].subcategory_name', 'Sandals');
-                        done();
-                    });
-                });
-            });
-        });
-    });
-});
-
-describe('save', function () {
-
-    before(destroyPosts);
-
-    it('all return should honor filter.fields, with `_id` as defined id', function (done) {
-
-        var post = new PostWithId({id: 'AAAA', title: 'Posts', content: 'all return should honor filter.fields'});
-        post.save(function (err, post) {
-            PostWithId.all({fields: ['title'], where: {title: 'Posts'}}, function (err, posts) {
-                should.not.exist(err);
-                posts.should.have.lengthOf(1);
-                post = posts[0];
-                post.should.have.property('title', 'Posts');
-                post.should.have.property('content', undefined);
-                should.not.exist(post._id);
-
-                done();
-            });
-        });
-    });
-
-    it('save should not return _id', function (done) {
-
-        Post.create({title: 'Post1', content: 'Post content'}, function (err, post) {
-            post.content = 'AAA';
-            post.save(function (err, p) {
-                should.not.exist(err);
-                should.not.exist(p._id);
-                p.id.should.be.equal(post.id);
-                p.content.should.be.equal('AAA');
-
-                done();
-            });
-
-        });
-    });
-
-    it('save should update the instance with the same id', function (done) {
-
-        Post.create({title: 'a', content: 'AAA'}, function (err, post) {
-            post.title = 'b';
-            delete post.content;
-            post.save(function (err, p) {
-                should.not.exist(err);
-                p.id.should.be.equal(post.id);
-                p.content.should.be.equal(post.content);
-                should.not.exist(p._id);
-                Post.findById(post.id, function (err, p) {
-                    p.id.should.be.eql(post.id);
-                    should.not.exist(p._id);
-                    p.content.should.be.equal(post.content);
-                    p.title.should.be.equal('b');
-                    done();
-                });
-            });
-        });
-    });
-
-    it('save should update the instance without removing existing properties', function (done) {
-
-        Post.create({
-            title: 'a',
-            content: 'update the instance without removing existing properties'
-        }, function (err, post) {
-            delete post.title;
-            post.save(function (err, p) {
-
-                should.not.exist(err);
-                p.id.should.be.equal(post.id);
-                p.content.should.be.equal(post.content);
-                should.not.exist(p._id);
-                Post.findById(post.id, function (err, p) {
-                    p.id.should.be.eql(post.id);
-                    should.not.exist(p._id);
-                    p.content.should.be.equal(post.content);
-                    p.title.should.be.equal('a');
-
-                    done();
-                });
-
-            });
-        });
-
-        it('save should create a new instance if it does not exist', function (done) {
-
-            var post = new Post({id: '123', title: 'Create', content: 'create if does not exist'});
-            post.save(post, function (err, p) {
-                should.not.exist(err);
-                p.title.should.be.equal(post.title);
-                p.content.should.be.equal(post.content);
-                p.id.should.be.equal(post.id);
-                Post.findById(p.id, function (err, p) {
-                    p.id.should.be.equal(post.id);
-                    should.not.exist(p._id);
-                    p.content.should.be.equal(post.content);
-                    p.title.should.be.equal(post.title);
-                    p.id.should.be.equal(post.id);
-
-                    done();
-                });
-            });
-        });
-
-        it('all return should honor filter.fields', function (done) {
-
-            var post = new Post({title: 'Fields', content: 'all return should honor filter.fields'});
-            post.save(function (err, post) {
-                Post.all({fields: ['title'], where: {title: 'Fields'}}, function (err, posts) {
-                    should.not.exist(err);
-                    posts.should.have.lengthOf(1);
-                    post = posts[0];
-                    post.should.have.property('title', 'Fields');
-                    post.should.have.property('content', undefined);
-                    should.not.exist(post._id);
-                    should.not.exist(post.id);
-
-                    done();
-                });
-            });
-        });
-
-    });
-
-    xdescribe('test id fallback when `generated:false`', function () {
-
-        it('should auto generate an id', function (done) {
-            Customer.create({name: 'George Harrison', vip: false}, function (err, u) {
-                console.log('user after create', u);
-                should.not.exist(err);
-                should.exist(u.id);
-                should.exist(u.objectId);
-                Customer.findById(u.objectId, function (err, u) {
-                    console.log('customer after first findById', u);
-                    u.save(function (err, savedCustomer) {
-                        console.log('user after save', savedCustomer);
-                        Customer.findById(u.objectId, function (err, foundUser) {
-                            console.log('user after findById', foundUser);
-                            done();
-                        });
-                    });
-                });
-            });
-        });
-    });
-
-});
 
 function seed(done) {
 
@@ -1347,7 +1375,7 @@ function seedCustomers(done) {
     ];
 
     return Customer.destroyAll().then(function() {
-        Customer.create(customers, function(err, customer) {
+        Customer.create(customers, function() {
             done();
         });
     });
