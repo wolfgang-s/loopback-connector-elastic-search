@@ -4,7 +4,7 @@ var db, User, Customer, AccessToken, Post, PostWithId, Category, SubCategory;
 
 /*eslint no-console: "off"*/
 /*global getSchema should*/
-xdescribe('basic-querying', function () {
+describe('basic-querying', function () {
 
 	this.timeout(30000);
 
@@ -1707,6 +1707,37 @@ xdescribe('basic-querying', function () {
 				}, 2000);
 			});
 		});
+
+	});
+
+	describe('updateAll', function () {
+		before(seed);
+		it('should update the documet', function (done) {
+			this.timeout(6000);
+
+			var userToUpdate = { seq: 10, name: 'Aquid Shahwar', email: 'aquid@shoppinpal.com', role: 'lead',
+				birthday: new Date('1992-09-21'), order: 11, vip: true
+			}
+			User.create(userToUpdate, function (err, user) {
+				should.not.exist(err);
+				should.exist(user);
+				setTimeout(function () {
+					User.updateAll({seq: user.seq},{order: 10}, function (err,update) {
+						should.not.exist(err);
+						should.exist(update);
+						setTimeout(function () {
+							User.findById(user.seq, function (err, updatedUser) {
+								should.not.exist(err);
+								should.exist(updatedUser);
+								updatedUser.name.should.be.equal('Aquid Shahwar');
+								updatedUser.order.should.be.equal(10);
+								done();
+							});
+						},2000);
+					});
+				},2000);
+			});
+		})
 
 	});
 
