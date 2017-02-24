@@ -4,7 +4,7 @@ var db, User, Customer, AccessToken, Post, PostWithId, Category, SubCategory;
 
 /*eslint no-console: "off"*/
 /*global getSchema should*/
-describe('basic-querying', function () {
+xdescribe('basic-querying', function () {
 
 	this.timeout(30000);
 
