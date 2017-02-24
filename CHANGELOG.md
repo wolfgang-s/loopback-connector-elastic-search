@@ -1,4 +1,10 @@
-### v1.3.2 - Feb 23, 2017
+### v1.3.4 - Feb 25, 2017
+- Fixed Issue #79  - Wait until the document is ready for searching
+  - this issue was fixed in PR #81
+- Fixed Issue #85  - Update All for es2.3 and above
+  - this issue was fixed in PR #84
+    
+### v1.3.3 - Feb 23, 2017
 - Fixed Issue #79  - Multiple where clause filter support without `and` filter
   - this issue was fixed in PR #78
 - Fixed Issue #73  - Nested and, or filter support added
