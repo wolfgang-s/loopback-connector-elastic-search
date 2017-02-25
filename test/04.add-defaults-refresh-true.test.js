@@ -63,6 +63,13 @@ describe('Add Defaults', function () {
             (typeof testConnector2.addDefaults('Book', 'updateOrCreate').refresh === 'undefined').should.be.true;
         });
 
+        it('should never have a refresh attribute', function () {
+            (typeof testConnector.addDefaults('Book', 'removeMappings').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'buildFilter').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'find').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'exists').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'count').refresh === 'undefined').should.be.true;
+        });
     });
 
     describe('Model specific settings', function () {
