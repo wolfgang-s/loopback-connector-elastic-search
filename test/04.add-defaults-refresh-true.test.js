@@ -46,12 +46,12 @@ describe('Add Defaults', function () {
     describe('Datasource specific settings', function () {
 
         it('modifying operations should have refresh true', function () {
-            (testConnector2.addDefaults('Account', 'create').refresh === false).should.be.true;
+            (typeof testConnector2.addDefaults('Account', 'create').refresh === 'undefined').should.be.true;
             (testConnector2.addDefaults('Account', 'save').refresh === true).should.be.true;
-            (testConnector2.addDefaults('Account', 'destroy').refresh === false).should.be.true;
-            (testConnector2.addDefaults('Account', 'destroyAll').refresh === false).should.be.true;
+            (typeof testConnector2.addDefaults('Account', 'destroy').refresh === 'undefined').should.be.true;
+            (typeof testConnector2.addDefaults('Account', 'destroyAll').refresh === 'undefined').should.be.true;
             (testConnector2.addDefaults('Account', 'updateAttributes').refresh === true).should.be.true;
-            (testConnector2.addDefaults('Account', 'updateOrCreate').refresh === false).should.be.true;
+            (typeof testConnector2.addDefaults('Account', 'updateOrCreate').refresh === 'undefined').should.be.true;
         });
 
         it('create and destroy should have refresh false for model book', function () {
@@ -60,9 +60,16 @@ describe('Add Defaults', function () {
             (testConnector2.addDefaults('Book', 'save').refresh === true).should.be.true;
             (testConnector2.addDefaults('Book', 'destroyAll').refresh === 'wait_for').should.be.true;
             (testConnector2.addDefaults('Book', 'updateAttributes').refresh === true).should.be.true;
-            (testConnector2.addDefaults('Book', 'updateOrCreate').refresh === false).should.be.true;
+            (typeof testConnector2.addDefaults('Book', 'updateOrCreate').refresh === 'undefined').should.be.true;
         });
 
+        it('should never have a refresh attribute', function () {
+            (typeof testConnector.addDefaults('Book', 'removeMappings').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'buildFilter').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'find').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'exists').refresh === 'undefined').should.be.true;
+            (typeof testConnector.addDefaults('Book', 'count').refresh === 'undefined').should.be.true;
+        });
     });
 
     describe('Model specific settings', function () {
